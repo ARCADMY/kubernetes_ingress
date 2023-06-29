@@ -21,7 +21,7 @@ In the case of NGINX, the Ingress controller is deployed in a pod along with the
 ## 1. Clone Kubernetes Nginx Ingress Manifests into server where you have kubectl
 
 ```
-$ git clone https://github.com/MithunTechnologiesDevOps/kubernetes-ingress.git
+$ git clone https://github.com/p2pro-DevOps/kubernetes-ingress.git
 
 $ cd kubernetes-ingress/deployments
 ```
@@ -80,14 +80,37 @@ $ kubectl describe svc nginx-ingress --namespace=nginx-ingress
 `OR`
 
 ```
-kubectl get svc -n nginx-ingress 
+$ kubectl get svc -n nginx-ingress 
 ```
 
 You can resolve the DNS name into an IP address using `nslookup`:
 ```
 $ nslookup <dns-name>
 ```
+To map your domain mavenwebapp.com to the AWS LoadBalancer DNS name (a41d8b744dd6d462c883f1ed05decfdb-1245958895.ap-south-1.elb.amazonaws.com) on your local machine, you will need to update your hosts file. This will allow your local machine to resolve the domain name mavenwebapp.com to the IP address that your LoadBalancer is using.
 
+Please note, this only works on your local machine. If you want this setup to be accessible by other machines, you'll need to use a DNS service like Amazon Route 53 or Google DNS to setup an A or CNAME record that points to the load balancer.
+
+$ nslookup a41d8b744dd6d462c883f1ed05decfdb-1245958895.ap-south-1.elb.amazonaws.com   
+
+$ sudo yum install bind-utils
+
+The bind-utils package includes both dig and nslookup tools. After installation, you should be able to use the dig or nslookup command.
+
+##Open Command Prompt as an Administrator:
+Click on the Windows start button, type cmd into the search box, then right-click on Command Prompt from the search results list, and select Run as administrator.
+Run the DNS flush command:
+In the command prompt window, type the following command and hit enter:
+
+$ ipconfig /flushdns
+
+define dns on your local-meachine:
+C:\Windows\System32\Drivers\etc\hosts --> open as an admin
+
+#### 13.234.79.225 javawebapp.com
+#### 13.126.61.94 javawebapp.com
+#### 13.234.79.225 mavenwebapp.com
+#### 13.126.61.94 mavenwebapp.com
 
 # 7. Ingress Resource:
 
@@ -98,21 +121,20 @@ $ nslookup <dns-name>
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: <name>
-  namespace: <namespace>
+  name: ingress-resource-1
 spec:
   ingressClassName: nginx
   rules:
-  - host: <domainName>
+  - host: javawebapp.com
     http:
       paths:
       - pathType: Prefix
-        path: "/<Path>"
+        path: "/"
         backend:
           service:
-            name: <serviceName>
+            name: javawebapp-service
             port:
-              number: <servicePort>
+              number: 80
 ``` 
 
 ### Multiple DNS Sample with hosts and servcies place holders
@@ -120,31 +142,30 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: <name>
-  namespace: <namespace>
+  name: ingress-resource-1
 spec:
   ingressClassName: nginx
   rules:
-  - host: <domainName>
+  - host: javawebapp.com
     http:
       paths:
       - pathType: Prefix
-        path: "/<Path>"
+        path: "/"
         backend:
           service:
-            name: <serviceName>
+            name: javawebapp-service
             port:
-              number: <servicePort>
-  - host: <domainName>
+              number: 80
+  - host: mavenwebapp.com
     http:
       paths:
       - pathType: Prefix
-        path: "/<Path>"
+        path: "/"
         backend:
           service:
-            name: <serviceName>
+            name: mavenwebapp-service
             port:
-              number: <servicePort>	
+              number: 80	
 ``` 		  
 
 ### Path Based Routing Example
@@ -152,28 +173,28 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: <name>
-  namespace: <nsname>
+  name: ingress-resource-1
 spec:
   ingressClassName: nginx
   rules:
-  - host: <domain>
+  - host: "javawebapp.com"
     http:
       paths:
       - pathType: Prefix
-        path: "/<Path>"
+        path: "/maven-web-application"
         backend:
           service:
-            name: <serviceName>
+            name: mavenwebapp-service
             port:
-             number: <servicePort>
+              number: 80
       - pathType: Prefix
-        path: "/<path>"
+        path: "/java-web-app"
         backend:
           service:
-            name: <servcieName>
+            name: javawebapp-service
             port:
-              number: <servicePort>
+              number: 80
+	
 ``` 
 
 
@@ -197,41 +218,29 @@ spec:
 
 ### Generate self signed certificates
 ```
-$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -out mithun-ingress-tls.crt -keyout mithun-ingress-tls.key -subj "/CN=javawebapp.mithuntechdevops.co.in/O=mithun-ingress-tls"
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -out p2pro-ingress-tls.crt -keyout p2pro-ingress-tls.key -subj "/CN=javawebapp.p2protechdevops.co.in/O=p2pro-ingress-tls"
 
 # Create secret for with your certificate .key & .crt file
 
-$ kubectl create secret tls mithun-ingress-tls --namespace default --key mithun-ingress-tls.key --cert mithun-ingress-tls.crt
+$ kubectl create secret tls p2pro-ingress-tls --namespace default --key p2pro-ingress-tls.key --cert p2pro-ingress-tls.crt
 ```
 ### Mention tls/ssl(certificate) details in ingress
 ```
-apiVersion: networking.k8s.io/v1
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: mithuntechappingressrule
-  namespace: test-ns
+  name: ingress-resource-1
 spec:
-  ingressClassName: nginx
   tls:
   - hosts:
-      - mithuntechdevops.co.in
-    secretName: mithun-ingress-tls
+     - javawebapp.p2protechdevops.co.in
+     secretName: p2pro-ingress-tls
+  ingressClassName: nginx
   rules:
-  - host: mithuntechdevops.co.in
+  - host: javawebapp.p2protechdevops.co.in
     http:
       paths:
-      - pathType: Prefix
-        path: "/java-web-app"
-        backend:
-          service:
-            name: javawebappsvc
-            port:
-              number: 80
-      - pathType: Prefix
-        path: "/maven-web-application"
-        backend:
-          service:
-            name: mavenwebappsvc
-            port:
-              number: 80
+      - backend:
+          serviceName: javawebappservice
+          servicePort: 80
 ```
